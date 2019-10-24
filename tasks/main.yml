@@ -1,0 +1,7 @@
+---
+---
+# tasks file for Elastic Search Master
+- name: Update Repositories
+  become: yes
+  apt:
+    update_cache: yes
