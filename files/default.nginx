@@ -1,0 +1,30 @@
+# Default server configuration for reverse proxy
+#
+server {
+   listen 80;
+   return 301 https://$host$request_uri;
+}
+
+server {
+   listen 443 http2 ssl;
+   listen [::]:443 http2 ssl;
+
+   access_log /var/log/nginx/nginx.access.log;
+   error_log  /var/log/nginx/nginx.error.log;
+
+   root /var/www/html;
+
+   index index.html index.htm index.nginx-debian.html;
+
+   server_name XXXXX;
+   ssl_certificate /etc/nginx/nginx.crt;
+   ssl_certificate_key /etc/nginx/nginx.key;
+   ssl_dhparam /etc/ssl/certs/dhparam.pem;
+
+   location / {
+      include /etc/nginx/proxy_params;
+      proxy_pass http://localhost:5601;
+      proxy_read_timeout 90s;
+      proxy_redirect http://localhost:5601 https://XXXXX;
+   }
+}
