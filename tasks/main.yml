@@ -4,3 +4,149 @@
   become: yes
   apt:
     update_cache: yes
+
+- name: Installing Prerequisites [sdk software-properties python-software apt-transport-https]
+  become: yes
+  apt:
+    name: "{{ packages }}"
+    state: present
+  ignore_errors: "{{ ansible_check_mode }}"
+  vars:
+    packages:
+      - 'openjdk-8-jdk-headless'
+      - 'software-properties-common'
+      - 'apt-transport-https'
+      - 'python3-software-properties'
+      - 'nginx'
+
+- name: Add elastic repo gpg key
+  become: yes
+  shell: curl 'https://artifacts.elastic.co/GPG-KEY-elasticsearch' | sudo apt-key add -
+
+- name: Download elastic search deb
+  become: yes
+  shell: wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7.4.2-amd64.deb
+
+- name: Install elastic search deb
+  become: yes
+  shell: dpkg -i elasticsearch-7.4.2-amd64.deb
+
+- name: Update Repositories
+  become: yes
+  apt:
+    update_cache: yes
+
+- name: Installing Elastic Search
+  become: yes
+  apt:
+    name: "{{ packages }}"
+    state: present
+  ignore_errors: "{{ ansible_check_mode }}"
+  vars:
+    packages:
+      - 'elasticsearch'
+
+- name: Create elasticsearch automation directory
+  become: yes
+  file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - '/root/.elastic_automate'
+
+- name: Create elasticsearch File
+  become: yes
+  copy:
+    src: elasticsearch
+    dest: /root/.elastic_automate/elasticsearch
+
+- name: Create elasticsearch.yml File
+  become: yes
+  copy:
+    src: elasticsearch.yml
+    dest: /root/.elastic_automate/elasticsearch.yml
+
+- name: Set hostname in elasticsearch.yml config file
+  become: yes
+  shell: sed -i s/XXXXX/$(hostname)/g /root/.elastic_automate/elasticsearch.yml
+
+- name: Set enviroment in elasticsearch.yml config file
+  become: yes
+  shell: sed -i s/ZZZZZ/$(hostname |cut -d. -f2)/g /root/.elastic_automate/elasticsearch.yml
+
+- name: Create Openssl req.conf File
+  become: yes
+  copy:
+    src: req.conf
+    dest: /root/.elastic_automate/req.conf
+
+- name: Set hostname in req.conf config file
+  become: yes
+  shell: sed -i s/XXXXX/$(hostname)/g /root/.elastic_automate/req.conf
+
+- name: Set ip address in req.conf config file
+  become: yes
+  shell: sed -i s/YYYYY/$(hostname -i | cut -d' ' -f1)/g /root/.elastic_automate/req.conf
+
+- name: Create nginx default config file
+  become: yes
+  copy:
+    src: default.nginx
+    dest: /root/.elastic_automate/default
+
+- name: Set hostname in nginx default config file
+  become: yes
+  shell: sed -i s/XXXXX/$(hostname)/g /root/.elastic_automate/default
+
+- name: Set ip address in nginx default config file
+  become: yes
+  shell: sed -i s/YYYYY/$(hostname -i | cut -d' ' -f1)/g /root/.elastic_automate/default
+
+- name: Create elastic_init.sh File
+  become: yes
+  copy:
+    src: elastic_init.sh
+    dest: /root/.elastic_automate/elastic_init.sh
+
+- name: Change permissions on elastic_init.sh
+  become: yes
+  file:
+    path: /root/.elastic_automate/elastic_init.sh
+    mode: "u+rwx"
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Run Elastic Search Initialization script
+  become: yes
+  command: /root/.elastic_automate/elastic_init.sh
+  args:
+    executable: /bin/bash
+
+- name: Download kibana deb
+  become: yes
+  shell: wget https://artifacts.elastic.co/downloads/kibana/kibana-7.4.2-amd64.deb
+
+- name: Install kibana deb
+  become: yes
+  shell: dpkg -i kibana-7.4.2-amd64.deb
+
+- name: Update Repositories
+  become: yes
+  apt:
+    update_cache: yes
+
+- name: Installing Kibana
+  become: yes
+  apt:
+    name: "{{ packages }}"
+    state: present
+  ignore_errors: "{{ ansible_check_mode }}"
+  vars:
+    packages:
+      - 'kibana'
+
+- name: Enable and start Kibana
+  become: yes
+  systemd:
+    name: kibana
+    enabled: yes
+    state: started
